@@ -521,7 +521,9 @@ describe("plugin sdk alias helpers", () => {
     // real openclaw repo root in the test runner environment.
     const loaderModuleUrl = pathToFileURL(path.join(fixture.root, "openclaw.mjs")).href;
 
-    const aliases = withCwd(fixture.root, () =>
+    // Use externalPluginRoot as cwd so process.cwd() fallback cannot accidentally
+    // resolve to the fixture root — only the moduleUrl hint can bridge the gap.
+    const aliases = withCwd(externalPluginRoot, () =>
       withEnv({ NODE_ENV: undefined }, () =>
         buildPluginLoaderAliasMap(
           externalPluginEntry,
