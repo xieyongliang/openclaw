@@ -50,18 +50,19 @@ Outside of session-backed agent runs (for example, direct tool invocations), the
 
 ## Supported providers
 
-| Provider | Default model                   | Text | Image ref        | Video ref        | API key               |
-| -------- | ------------------------------- | ---- | ---------------- | ---------------- | --------------------- |
-| Alibaba  | `wan2.6-t2v`                    | Yes  | Yes (remote URL) | Yes (remote URL) | `MODELSTUDIO_API_KEY` |
-| BytePlus | `seedance-1-0-lite-t2v-250428`  | Yes  | 1 image          | No               | `BYTEPLUS_API_KEY`    |
-| fal      | `fal-ai/minimax/video-01-live`  | Yes  | 1 image          | No               | `FAL_KEY`             |
-| Google   | `veo-3.1-fast-generate-preview` | Yes  | 1 image          | 1 video          | `GEMINI_API_KEY`      |
-| MiniMax  | `MiniMax-Hailuo-2.3`            | Yes  | 1 image          | No               | `MINIMAX_API_KEY`     |
-| OpenAI   | `sora-2`                        | Yes  | 1 image          | 1 video          | `OPENAI_API_KEY`      |
-| Qwen     | `wan2.6-t2v`                    | Yes  | Yes (remote URL) | Yes (remote URL) | `QWEN_API_KEY`        |
-| Runway   | `gen4.5`                        | Yes  | 1 image          | 1 video          | `RUNWAYML_API_SECRET` |
-| Together | `Wan-AI/Wan2.2-T2V-A14B`        | Yes  | 1 image          | No               | `TOGETHER_API_KEY`    |
-| xAI      | `grok-imagine-video`            | Yes  | 1 image          | 1 video          | `XAI_API_KEY`         |
+| Provider               | Default model                   | Text | Image ref                                            | Video ref        | API key               |
+| ---------------------- | ------------------------------- | ---- | ---------------------------------------------------- | ---------------- | --------------------- |
+| Alibaba                | `wan2.6-t2v`                    | Yes  | Yes (remote URL)                                     | Yes (remote URL) | `MODELSTUDIO_API_KEY` |
+| BytePlus               | `seedance-1-0-lite-t2v-250428`  | Yes  | First + last frame (via `image` / `providerOptions`) | No               | `BYTEPLUS_API_KEY`    |
+| BytePlus Seedance 1.5+ | `seedance-1-5-pro-251215`       | Yes  | Up to 9 images (first/last frame via role)           | Up to 3 videos   | `BYTEPLUS_API_KEY`    |
+| fal                    | `fal-ai/minimax/video-01-live`  | Yes  | 1 image                                              | No               | `FAL_KEY`             |
+| Google                 | `veo-3.1-fast-generate-preview` | Yes  | 1 image                                              | 1 video          | `GEMINI_API_KEY`      |
+| MiniMax                | `MiniMax-Hailuo-2.3`            | Yes  | 1 image                                              | No               | `MINIMAX_API_KEY`     |
+| OpenAI                 | `sora-2`                        | Yes  | 1 image                                              | 1 video          | `OPENAI_API_KEY`      |
+| Qwen                   | `wan2.6-t2v`                    | Yes  | Yes (remote URL)                                     | Yes (remote URL) | `QWEN_API_KEY`        |
+| Runway                 | `gen4.5`                        | Yes  | 1 image                                              | 1 video          | `RUNWAYML_API_SECRET` |
+| Together               | `Wan-AI/Wan2.2-T2V-A14B`        | Yes  | 1 image                                              | No               | `TOGETHER_API_KEY`    |
+| xAI                    | `grok-imagine-video`            | Yes  | 1 image                                              | 1 video          | `XAI_API_KEY`         |
 
 Some providers accept additional or alternate API key env vars. See individual [provider pages](#related) for details.
 
@@ -77,12 +78,15 @@ Run `video_generate action=list` to inspect available providers and models at ru
 
 ### Content inputs
 
-| Parameter | Type     | Description                          |
-| --------- | -------- | ------------------------------------ |
-| `image`   | string   | Single reference image (path or URL) |
-| `images`  | string[] | Multiple reference images (up to 5)  |
-| `video`   | string   | Single reference video (path or URL) |
-| `videos`  | string[] | Multiple reference videos (up to 4)  |
+| Parameter    | Type     | Description                                                                                              |
+| ------------ | -------- | -------------------------------------------------------------------------------------------------------- |
+| `image`      | string   | Single reference image (path or URL)                                                                     |
+| `images`     | string[] | Multiple reference images (up to 9)                                                                      |
+| `imageRoles` | string[] | Parallel semantic roles for `images` entries (e.g. `"first_frame"`, `"last_frame"`, `"reference_image"`) |
+| `video`      | string   | Single reference video (path or URL)                                                                     |
+| `videos`     | string[] | Multiple reference videos (up to 4)                                                                      |
+| `audioRef`   | string   | Single reference audio URL (e.g. background music)                                                       |
+| `audioRefs`  | string[] | Multiple reference audios (up to 3; provider-dependent)                                                  |
 
 ### Style controls
 
@@ -97,11 +101,12 @@ Run `video_generate action=list` to inspect available providers and models at ru
 
 ### Advanced
 
-| Parameter  | Type   | Description                                     |
-| ---------- | ------ | ----------------------------------------------- |
-| `action`   | string | `"generate"` (default), `"status"`, or `"list"` |
-| `model`    | string | Provider/model override (e.g. `runway/gen4.5`)  |
-| `filename` | string | Output filename hint                            |
+| Parameter         | Type   | Description                                                                                                                                           |
+| ----------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `action`          | string | `"generate"` (default), `"status"`, or `"list"`                                                                                                       |
+| `model`           | string | Provider/model override (e.g. `runway/gen4.5`)                                                                                                        |
+| `filename`        | string | Output filename hint                                                                                                                                  |
+| `providerOptions` | object | Provider-specific options passed as-is to the active provider. Core does not validate the contents. See individual provider pages for supported keys. |
 
 Not all providers support all parameters. Unsupported overrides are ignored on a best-effort basis and reported as warnings in the tool result. Hard capability limits (such as too many reference inputs) fail before submission.
 
@@ -137,18 +142,19 @@ If a provider fails, the next candidate is tried automatically. If all candidate
 
 ## Provider notes
 
-| Provider | Notes                                                                                                                                    |
-| -------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Alibaba  | Uses DashScope/Model Studio async endpoint. Reference images and videos must be remote `http(s)` URLs.                                   |
-| BytePlus | Single image reference only.                                                                                                             |
-| fal      | Uses queue-backed flow for long-running jobs. Single image reference only.                                                               |
-| Google   | Uses Gemini/Veo. Supports one image or one video reference.                                                                              |
-| MiniMax  | Single image reference only.                                                                                                             |
-| OpenAI   | Only `size` override is forwarded. Other style overrides (`aspectRatio`, `resolution`, `audio`, `watermark`) are ignored with a warning. |
-| Qwen     | Same DashScope backend as Alibaba. Reference inputs must be remote `http(s)` URLs; local files are rejected upfront.                     |
-| Runway   | Supports local files via data URIs. Video-to-video requires `runway/gen4_aleph`. Text-only runs expose `16:9` and `9:16` aspect ratios.  |
-| Together | Single image reference only.                                                                                                             |
-| xAI      | Supports text-to-video, image-to-video, and remote video edit/extend flows.                                                              |
+| Provider               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alibaba                | Uses DashScope/Model Studio async endpoint. Reference images and videos must be remote `http(s)` URLs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| BytePlus (1.x)         | Supports first and last frame references (up to 2 images). Set `role: "first_frame"` / `"last_frame"` on each asset, or pass `images[0]` / `images[1]` positionally, or use `providerOptions.firstFrameImageUrl` / `providerOptions.lastFrameImageUrl`. Additional `providerOptions` keys: `seed` (number), `draft` (boolean, forces 480p), `camerafixed` (boolean).                                                                                                                                                                                                                                       |
+| BytePlus Seedance 1.5+ | Covers Seedance 1.5 Pro (`seedance-1-5-pro-251215`) and Seedance 2.0 (`dreamina-seedance-2-0-260128`). Uses the unified `content[]` API. All inputs are remote `https://` URLs. Set `role` on each asset to control semantics — Seedance-native roles include `"first_frame"`, `"last_frame"`, `"reference_image"`, `"reference_video"`, `"reference_audio"`. If no role is set, the provider defaults to the input type. `aspectRatio: "adaptive"` lets Seedance auto-detect the ratio from input image dimensions. `audio: true` maps to `generate_audio`. `providerOptions.seed` (number) is forwarded. |
+| fal                    | Uses queue-backed flow for long-running jobs. Single image reference only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Google                 | Uses Gemini/Veo. Supports one image or one video reference.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| MiniMax                | Single image reference only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| OpenAI                 | Only `size` override is forwarded. Other style overrides (`aspectRatio`, `resolution`, `audio`, `watermark`) are ignored with a warning.                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Qwen                   | Same DashScope backend as Alibaba. Reference inputs must be remote `http(s)` URLs; local files are rejected upfront.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Runway                 | Supports local files via data URIs. Video-to-video requires `runway/gen4_aleph`. Text-only runs expose `16:9` and `9:16` aspect ratios.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Together               | Single image reference only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| xAI                    | Supports text-to-video, image-to-video, and remote video edit/extend flows.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Configuration
 
